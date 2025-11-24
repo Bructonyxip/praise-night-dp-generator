@@ -40,7 +40,7 @@ class DPCanvasHandler {
         this.imagePosY = 0;
         
         // Frame image path
-        this.frameImagePath = 'assets/images/frame.png';
+     this.frameImagePath = 'https://bructonyxip.github.io/praise-night-dp-generator/assets/images/frame.png';
         
         // Enable high DPI rendering
         this.setupHighDPI();
@@ -346,4 +346,5 @@ function initializeCanvas(canvasId = 'dpCanvas') {
 if (typeof window !== 'undefined') {
     window.DPCanvasHandler = DPCanvasHandler;
     window.initializeCanvas = initializeCanvas;
+
 }
