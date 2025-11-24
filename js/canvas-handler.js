@@ -61,15 +61,33 @@ class DPCanvasHandler {
     }
 
     // Load frame image
-    async loadFrame() {
-        try {
-            this.frameImage = await ImageLoader.loadFromUrl(this.frameImagePath);
-            this.draw();
-            return true;
-        } catch (error) {
-            console.error('Failed to load frame:', error);
-            this.drawError('Failed to load template. Please refresh the page.');
-            return false;
+async loadFrame() {
+    try {
+        // Direct image loading
+        this.frameImage = new Image();
+        this.frameImage.crossOrigin = 'anonymous';
+        
+        return new Promise((resolve, reject) => {
+            this.frameImage.onload = () => {
+                this.draw();
+                console.log('Frame loaded successfully!');
+                resolve(true);
+            };
+            
+            this.frameImage.onerror = (error) => {
+                console.error('Failed to load frame:', error);
+                this.drawError('Failed to load template. Please refresh the page.');
+                reject(false);
+            };
+            
+            this.frameImage.src = this.frameImagePath;
+        });
+    } catch (error) {
+        console.error('Failed to load frame:', error);
+        this.drawError('Failed to load template. Please refresh the page.');
+        return false;
+    }
+}
         }
     }
 
@@ -348,3 +366,4 @@ if (typeof window !== 'undefined') {
     window.initializeCanvas = initializeCanvas;
 
 }
+
