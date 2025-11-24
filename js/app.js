@@ -1,7 +1,7 @@
 /**
  * MATEPLUX DP GENERATOR - MAIN APPLICATION
  * Mateplux Media Systems Ltd.
- * Version: 1.0.1 - Fixed Init Failures
+ * Version: 1.0.0
  */
 
 // Application State
@@ -12,7 +12,7 @@ const AppState = {
     uploadedFile: null
 };
 
-// DOM Elements (with null guards)
+// DOM Elements
 const Elements = {
     // Upload elements
     photoInput: null,
@@ -32,420 +32,403 @@ const Elements = {
 
     // Action buttons
     downloadBtn: null,
-    generateBtn: null,
     
     // Loading overlay
     loadingOverlay: null
 };
 
 // Initialize application
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     console.log('🎨 Mateplux DP Generator - Initializing...');
     
-    try {
-        await initializeApp();
-        console.log('✅ Application ready!');
-        Toast.success('Generator loaded successfully!');
-    } catch (error) {
-        console.error('Initialization failed:', error);
-        Toast.error('Failed to load generator. Please refresh the page.');
-    }
-});
-
-// Main init function (async for canvas load)
-async function initializeApp() {
     initializeElements();
-    await initializeCanvas();
+    initializeCanvas();
     setupEventListeners();
     loadSavedState();
-}
+    
+    console.log('✅ Application ready!');
+});
 
-// Initialize DOM elements (with null checks)
+// Initialize DOM elements
 function initializeElements() {
-    const getElement = (id) => {
-        const el = document.getElementById(id);
-        if (!el) console.warn(`Element #${id} not found`);
-        return el;
-    };
-
-    Elements.photoInput = getElement('photoInput');
-    Elements.uploadArea = getElement('uploadArea');
-    Elements.uploadContainer = getElement('uploadContainer');
-    Elements.uploadedPreview = getElement('uploadedPreview');
-    Elements.previewImage = getElement('previewImage');
-    Elements.changePhotoBtn = getElement('changePhotoBtn');
+    Elements.photoInput = document.getElementById('photoInput');
+    Elements.uploadArea = document.getElementById('uploadArea');
+    Elements.uploadContainer = document.getElementById('uploadContainer');
+    Elements.uploadedPreview = document.getElementById('uploadedPreview');
+    Elements.previewImage = document.getElementById('previewImage');
+    Elements.changePhotoBtn = document.getElementById('changePhotoBtn');
     
-    Elements.nameInput = getElement('nameInput');
-    Elements.charCount = getElement('charCount');
-    Elements.zoomSlider = getElement('zoomSlider');
-    Elements.posXSlider = getElement('posXSlider');
-    Elements.posYSlider = getElement('posYSlider');
-    Elements.resetAdjustBtn = getElement('resetAdjustBtn');
+    Elements.nameInput = document.getElementById('nameInput');
+    Elements.charCount = document.getElementById('charCount');
+    Elements.zoomSlider = document.getElementById('zoomSlider');
+    Elements.posXSlider = document.getElementById('posXSlider');
+    Elements.posYSlider = document.getElementById('posYSlider');
+    Elements.resetAdjustBtn = document.getElementById('resetAdjustBtn');
     
-    Elements.downloadBtn = getElement('downloadBtn');
-    Elements.generateBtn = getElement('generateBtn');
-    Elements.loadingOverlay = getElement('loadingOverlay');
-
-    // Enable generate button if elements exist
-    if (Elements.generateBtn) Elements.generateBtn.disabled = false;
+    Elements.downloadBtn = document.getElementById('downloadBtn');
+    Elements.loadingOverlay = document.getElementById('loadingOverlay');
 }
 
-// Initialize canvas (async for image load)
+// Initialize canvas
 async function initializeCanvas() {
-    showLoading(true);
-    
-    if (!window.initializeCanvas) {
-        throw new Error('Canvas handler not loaded');
-    }
-
-    AppState.dpCanvas = initializeCanvas('dpCanvas');
-    
-    if (!AppState.dpCanvas) {
-        throw new Error('Failed to initialize canvas');
-    }
-
-    // Wait for frame load
-    const frameLoaded = await AppState.dpCanvas.loadFrame();
-    
-    if (frameLoaded) {
-        AppState.isInitialized = true;
+    try {
+        showLoading(true);
+        
+        AppState.dpCanvas = initializeCanvas('dpCanvas');
+        
+        // Load frame image
+        const frameLoaded = await AppState.dpCanvas.loadFrame();
+        
+        if (frameLoaded) {
+            AppState.isInitialized = true;
+            Toast.success('Generator ready!');
+        } else {
+            Toast.error('Failed to load template');
+        }
+        
         showLoading(false);
-        return true;
-    } else {
-        throw new Error('Frame image failed to load');
+    } catch (error) {
+        console.error('Initialization error:', error);
+        Toast.error('Failed to initialize generator');
+        showLoading(false);
     }
 }
 
-// Setup event listeners (with guards)
+// Setup all event listeners
 function setupEventListeners() {
     // Photo upload
-    if (Elements.photoInput) {
-        Elements.photoInput.addEventListener('change', handleFileUpload);
-    }
-
-    if (Elements.uploadArea) {
-        Elements.uploadArea.addEventListener('click', () => Elements.photoInput?.click());
-        Elements.uploadArea.addEventListener('dragover', handleDragOver);
-        Elements.uploadArea.addEventListener('drop', handleDrop);
-    }
-
-    if (Elements.changePhotoBtn) {
-        Elements.changePhotoBtn.addEventListener('click', () => Elements.photoInput?.click());
-    }
-
+    Elements.uploadArea.addEventListener('click', handleUploadClick);
+    Elements.photoInput.addEventListener('change', handleFileSelect);
+    Elements.changePhotoBtn.addEventListener('click', handleUploadClick);
+    
+    // Drag and drop
+    Elements.uploadArea.addEventListener('dragover', handleDragOver);
+    Elements.uploadArea.addEventListener('dragleave', handleDragLeave);
+    Elements.uploadArea.addEventListener('drop', handleDrop);
+    
     // Name input
-    if (Elements.nameInput) {
-        Elements.nameInput.addEventListener('input', handleNameInput);
-    }
-
-    // Adjustments
-    if (Elements.zoomSlider) Elements.zoomSlider.addEventListener('input', throttle(handleZoomChange, 50));
-    if (Elements.posXSlider) Elements.posXSlider.addEventListener('input', throttle(handlePositionChange, 50));
-    if (Elements.posYSlider) Elements.posYSlider.addEventListener('input', throttle(handlePositionChange, 50));
-    if (Elements.resetAdjustBtn) Elements.resetAdjustBtn.addEventListener('click', handleResetAdjustments);
-
-    // Generate & Download
-    if (Elements.generateBtn) Elements.generateBtn.addEventListener('click', handleGenerate);
-    if (Elements.downloadBtn) Elements.downloadBtn.addEventListener('click', handleDownload);
-
+    Elements.nameInput.addEventListener('input', handleNameInput);
+    
+    // Sliders
+    Elements.zoomSlider.addEventListener('input', throttle(handleZoomChange, 50));
+    Elements.posXSlider.addEventListener('input', throttle(handlePositionChange, 50));
+    Elements.posYSlider.addEventListener('input', throttle(handlePositionChange, 50));
+    
+    // Reset button
+    Elements.resetAdjustBtn.addEventListener('click', handleResetAdjustments);
+    
+    // Download button
+    Elements.downloadBtn.addEventListener('click', handleDownload);
+    
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyboardShortcuts);
-
-    // Before unload
+    
+    // Prevent accidental page leave
     window.addEventListener('beforeunload', handleBeforeUnload);
 }
 
-// File upload handler (debounced)
-function handleFileUpload(e) {
-    e.preventDefault();
-    const file = e.target.files[0];
-    if (!file) return;
+// === UPLOAD HANDLERS ===
 
+function handleUploadClick() {
+    Elements.photoInput.click();
+}
+
+async function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        await processFile(file);
+    }
+}
+
+function handleDragOver(event) {
+    event.preventDefault();
+    Elements.uploadArea.classList.add('dragover');
+}
+
+function handleDragLeave(event) {
+    event.preventDefault();
+    Elements.uploadArea.classList.remove('dragover');
+}
+
+async function handleDrop(event) {
+    event.preventDefault();
+    Elements.uploadArea.classList.remove('dragover');
+    
+    const file = event.dataTransfer.files[0];
+    if (file) {
+        await processFile(file);
+    }
+}
+
+async function processFile(file) {
+    // Validate file
     const validation = FileValidator.validate(file);
     if (!validation.valid) {
         Toast.error(validation.error);
         return;
     }
-
-    AppState.uploadedFile = file;
-    processFile(file);
-}
-
-// Drag & Drop handlers
-function handleDragOver(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-    Elements.uploadArea?.classList.add('drag-over');
-}
-
-function handleDrop(e) {
-    e.preventDefault();
-    Elements.uploadArea?.classList.remove('drag-over');
-    const file = e.dataTransfer.files[0];
-    if (file) {
-        Elements.photoInput.files = e.dataTransfer.files;
-        handleFileUpload({ target: { files: [file] } });
-    }
-}
-
-// Process uploaded file
-async function processFile(file) {
-    if (AppState.isProcessing) return;
-
-    AppState.isProcessing = true;
-    showLoading(true);
-
+    
     try {
-        const img = await ImageLoader.load(file);
-        Elements.previewImage.src = img.src;
-        Elements.uploadContainer.style.display = 'block';
-        Elements.uploadArea.style.display = 'none';
-
-        // Update canvas
-        if (AppState.dpCanvas) {
-            AppState.dpCanvas.setUserImage(img);
-            AppState.dpCanvas.setUserName(Elements.nameInput.value);
-            AppState.dpCanvas.draw();
-        }
-
+        showLoading(true);
+        
+        // Load image
+        const image = await ImageLoader.load(file);
+        
+        // Set to canvas
+        AppState.dpCanvas.setUserImage(image);
+        AppState.uploadedFile = file;
+        
+        // Update UI
+        showUploadedPreview(image);
+        updateDownloadButton();
+        
+        // Save state
+        saveState();
+        
         Toast.success('Photo uploaded successfully!');
-        updateGenerateButton();
+        showLoading(false);
     } catch (error) {
         console.error('File processing error:', error);
-        Toast.error('Failed to process photo. Try again.');
-    } finally {
-        AppState.isProcessing = false;
+        Toast.error('Failed to process image. Please try another file.');
         showLoading(false);
     }
 }
 
-// Name input handler
-function handleNameInput(e) {
-    const value = e.target.value;
-    Elements.charCount.textContent = value.length + '/20';
-
-    if (AppState.dpCanvas) {
-        AppState.dpCanvas.setUserName(value);
-        AppState.dpCanvas.draw();
-    }
-
-    saveState();
-    updateGenerateButton();
+function showUploadedPreview(image) {
+    Elements.previewImage.src = image.src;
+    Elements.uploadArea.style.display = 'none';
+    Elements.uploadedPreview.style.display = 'block';
 }
 
-// Adjustment handlers (throttled)
-function handleZoomChange(e) {
-    if (AppState.dpCanvas) {
-        AppState.dpCanvas.setImageZoom(parseFloat(e.target.value));
-        AppState.dpCanvas.draw();
-    }
+function hideUploadedPreview() {
+    Elements.uploadArea.style.display = 'block';
+    Elements.uploadedPreview.style.display = 'none';
+    Elements.previewImage.src = '';
+}
+
+// === NAME INPUT HANDLER ===
+
+const handleNameInput = debounce((event) => {
+    const name = event.target.value;
+    
+    // Update character count
+    Elements.charCount.textContent = name.length;
+    
+    // Update canvas
+    AppState.dpCanvas.setUserName(name);
+    
+    // Save state
+    saveState();
+    
+    // Update download button
+    updateDownloadButton();
+}, 300);
+
+// === SLIDER HANDLERS ===
+
+function handleZoomChange(event) {
+    const zoom = parseFloat(event.target.value);
+    AppState.dpCanvas.setImageZoom(zoom);
     saveState();
 }
 
-function handlePositionChange(e) {
-    if (AppState.dpCanvas) {
-        const slider = e.target;
-        const value = parseFloat(slider.value);
-        if (slider.id === 'posXSlider') {
-            AppState.dpCanvas.setImagePosX(value);
-        } else {
-            AppState.dpCanvas.setImagePosY(value);
-        }
-        AppState.dpCanvas.draw();
-    }
+function handlePositionChange() {
+    const x = parseInt(Elements.posXSlider.value);
+    const y = parseInt(Elements.posYSlider.value);
+    AppState.dpCanvas.setImagePosition(x, y);
     saveState();
 }
 
 function handleResetAdjustments() {
-    if (Elements.zoomSlider) Elements.zoomSlider.value = 1;
-    if (Elements.posXSlider) Elements.posXSlider.value = 0;
-    if (Elements.posYSlider) Elements.posYSlider.value = 0;
-
-    if (AppState.dpCanvas) {
-        AppState.dpCanvas.resetAdjustments();
-        AppState.dpCanvas.draw();
-    }
-
-    saveState();
-    Toast.success('Adjustments reset');
-}
-
-// Generate button logic
-function updateGenerateButton() {
-    const hasPhoto = AppState.uploadedFile;
-    const hasName = Elements.nameInput.value.trim().length > 0;
+    // Reset sliders
+    Elements.zoomSlider.value = 1;
+    Elements.posXSlider.value = 0;
+    Elements.posYSlider.value = 0;
     
-    if (Elements.generateBtn) {
-        Elements.generateBtn.disabled = !(hasPhoto && AppState.isInitialized);
-        Elements.generateBtn.textContent = hasPhoto ? 'Generate DP' : 'Upload Photo First';
-    }
+    // Reset canvas
+    AppState.dpCanvas.resetAdjustments();
+    
+    saveState();
+    Toast.info('Adjustments reset');
 }
 
-// Generate handler
-async function handleGenerate() {
-    if (!AppState.isInitialized || !AppState.uploadedFile) return;
+// === DOWNLOAD HANDLER ===
 
-    showLoading(true);
-
-    try {
-        AppState.dpCanvas.setUserName(Elements.nameInput.value);
-        AppState.dpCanvas.draw();
-
-        Elements.generateBtn.disabled = true;
-        Elements.generateBtn.textContent = 'Generating...';
-
-        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate processing
-
-        Elements.downloadBtn.disabled = false;
-        Elements.downloadBtn.style.display = 'block';
-
-        trackDownload();
-
-        Toast.success('DP generated! Download ready.');
-    } catch (error) {
-        console.error('Generate error:', error);
-        Toast.error('Failed to generate DP');
-    } finally {
-        showLoading(false);
-        Elements.generateBtn.disabled = false;
-        Elements.generateBtn.textContent = 'Generate DP';
-    }
-}
-
-// Download handler
 async function handleDownload() {
     if (!AppState.dpCanvas.isReadyForDownload()) {
-        Toast.error('Please generate your DP first');
+        Toast.error('Please upload a photo first!');
         return;
     }
-
-    showLoading(true);
-
+    
+    if (AppState.isProcessing) {
+        return;
+    }
+    
     try {
-        const blob = await AppState.dpCanvas.exportAsBlob('image/png', 0.95);
-        const url = URL.createObjectURL(blob);
-
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `PraiseNight2025_${Elements.nameInput.value.replace(/\s+/g, '_').toLowerCase()}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        URL.revokeObjectURL(url);
-
-        Toast.success('Downloaded successfully!');
+        AppState.isProcessing = true;
+        showLoading(true);
+        
+        // Generate filename
+        const name = Elements.nameInput.value || 'user';
+        const filename = DownloadUtils.generateFilename(name);
+        
+        // Download
+        DownloadUtils.downloadCanvas(AppState.dpCanvas.canvas, filename);
+        
+        Toast.success('DP downloaded successfully!');
+        
+        // Track download (you can add analytics here)
         trackDownload();
+        
+        showLoading(false);
+        AppState.isProcessing = false;
     } catch (error) {
         console.error('Download error:', error);
-        Toast.error('Download failed. Try again.');
-    } finally {
+        Toast.error('Failed to download. Please try again.');
         showLoading(false);
+        AppState.isProcessing = false;
     }
 }
 
-// Loading overlay
-function showLoading(show = true) {
+// === UI HELPERS ===
+
+function showLoading(show) {
     if (Elements.loadingOverlay) {
-        Elements.loadingOverlay.style.display = show ? 'flex' : 'none';
+        Elements.loadingOverlay.classList.toggle('active', show);
     }
 }
 
-// Save state to localStorage
+function updateDownloadButton() {
+    const canDownload = AppState.dpCanvas && AppState.dpCanvas.isReadyForDownload();
+    Elements.downloadBtn.disabled = !canDownload;
+}
+
+// === STATE MANAGEMENT ===
+
 function saveState() {
+    if (!AppState.isInitialized) return;
+    
     const state = {
-        userName: Elements.nameInput?.value || '',
-        zoom: Elements.zoomSlider?.value || 1,
-        posX: Elements.posXSlider?.value || 0,
-        posY: Elements.posYSlider?.value || 0,
+        userName: Elements.nameInput.value,
+        zoom: parseFloat(Elements.zoomSlider.value),
+        posX: parseInt(Elements.posXSlider.value),
+        posY: parseInt(Elements.posYSlider.value),
         timestamp: Date.now()
     };
-
-    localStorage.setItem('praiseNightDPState', JSON.stringify(state));
+    
+    StorageManager.set('last_state', state);
 }
 
-// Load saved state
 function loadSavedState() {
-    const saved = localStorage.getItem('praiseNightDPState');
-    if (!saved) return;
-
-    try {
-        const state = JSON.parse(saved);
+    const saved = StorageManager.get('last_state');
+    
+    if (saved && saved.userName) {
+        Elements.nameInput.value = saved.userName;
+        Elements.zoomSlider.value = saved.zoom || 1;
+        Elements.posXSlider.value = saved.posX || 0;
+        Elements.posYSlider.value = saved.posY || 0;
         
-        if (Elements.nameInput) Elements.nameInput.value = state.userName;
-        if (Elements.charCount) Elements.charCount.textContent = state.userName.length + '/20';
-
-        if (Elements.zoomSlider) Elements.zoomSlider.value = state.zoom;
-        if (Elements.posXSlider) Elements.posXSlider.value = state.posX;
-        if (Elements.posYSlider) Elements.posYSlider.value = state.posY;
-
-        if (AppState.dpCanvas) {
-            AppState.dpCanvas.setUserName(state.userName);
-            AppState.dpCanvas.setImageZoom(parseFloat(state.zoom));
-            AppState.dpCanvas.setImagePosX(parseFloat(state.posX));
-            AppState.dpCanvas.setImagePosY(parseFloat(state.posY));
-            AppState.dpCanvas.draw();
+        // Update canvas if initialized
+        if (AppState.isInitialized) {
+            AppState.dpCanvas.setUserName(saved.userName);
+            AppState.dpCanvas.setImageZoom(saved.zoom);
+            AppState.dpCanvas.setImagePosition(saved.posX, saved.posY);
         }
-
-        updateGenerateButton();
-    } catch (error) {
-        console.error('Load state error:', error);
+        
+        // Update character count
+        Elements.charCount.textContent = saved.userName.length;
     }
 }
 
-// Keyboard shortcuts
+// === KEYBOARD SHORTCUTS ===
+
 function handleKeyboardShortcuts(event) {
-    if (event.ctrlKey || event.metaKey) {
-        switch (event.key) {
-            case 's':
-                event.preventDefault();
-                handleDownload();
-                break;
-            case 'u':
-                event.preventDefault();
-                Elements.photoInput?.click();
-                break;
+    // Ctrl/Cmd + S: Download
+    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        if (!Elements.downloadBtn.disabled) {
+            handleDownload();
         }
+    }
+    
+    // Ctrl/Cmd + U: Upload
+    if ((event.ctrlKey || event.metaKey) && event.key === 'u') {
+        event.preventDefault();
+        handleUploadClick();
+    }
+    
+    // Escape: Reset adjustments
+    if (event.key === 'Escape') {
+        handleResetAdjustments();
     }
 }
 
-// Before unload warning
+// === BEFORE UNLOAD ===
+
 function handleBeforeUnload(event) {
-    if (AppState.uploadedFile && Elements.nameInput.value.trim()) {
+    if (AppState.uploadedFile && Elements.nameInput.value) {
         event.preventDefault();
-        event.returnValue = 'You have unsaved work. Are you sure?';
+        event.returnValue = 'You have unsaved work. Are you sure you want to leave?';
         return event.returnValue;
     }
 }
 
-// Analytics (stub - add your GA ID)
+// === ANALYTICS & TRACKING ===
+
 function trackDownload() {
-    console.log('📊 Download:', {
-        name: Elements.nameInput.value,
+    // Add your analytics tracking here
+    console.log('📊 Download tracked:', {
+        hasName: Elements.nameInput.value.length > 0,
         timestamp: new Date().toISOString()
     });
-    // gtag('event', 'dp_download', { event_category: 'PraiseNight2025' });
+    
+    // Example: Google Analytics
+    // if (typeof gtag !== 'undefined') {
+    //     gtag('event', 'download', {
+    //         'event_category': 'DP_Generator',
+    //         'event_label': 'Praise_Night_2025'
+    //     });
+    // }
 }
 
-// Throttle utility
-function throttle(func, limit) {
-    let inThrottle;
-    return function() {
-        if (!inThrottle) {
-            func.apply(this, arguments);
-            inThrottle = true;
-            setTimeout(() => inThrottle = false, limit);
-        }
-    };
-}
+// === SMOOTH SCROLLING ===
 
-// Smooth scrolling
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute('href'));
         if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
         }
     });
 });
+
+// === ERROR HANDLING ===
+
+window.addEventListener('error', (event) => {
+    console.error('Global error:', event.error);
+    // Don't show toast for every error, but log it
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
+    // Don't show toast for every rejection, but log it
+});
+
+// === EXPORT FOR TESTING ===
+
+if (typeof window !== 'undefined') {
+    window.MatepluxDPApp = {
+        state: AppState,
+        elements: Elements,
+        handlers: {
+            processFile,
+            handleDownload,
+            saveState,
+            loadSavedState
+        }
+    };
+}
