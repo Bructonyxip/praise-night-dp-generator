@@ -72,6 +72,7 @@ const FileValidator = {
 };
 
 // Image Loader Utility
+// Image Loader Utility
 const ImageLoader = {
     load(file) {
         return new Promise((resolve, reject) => {
@@ -102,12 +103,36 @@ const ImageLoader = {
     loadFromUrl(url) {
         return new Promise((resolve, reject) => {
             const img = new Image();
-            img.crossOrigin = 'anonymous';
-
-            img.onload = () => resolve(img);
-            img.onerror = () => reject(new Error(`Failed to load image from ${url}`));
-
-            img.src = url;
+            
+            // Try without crossOrigin first for same-origin requests
+            if (!url.startsWith('http') || url.includes(window.location.hostname)) {
+                img.onload = () => {
+                    console.log('✅ Image loaded successfully:', url);
+                    resolve(img);
+                };
+                
+                img.onerror = (error) => {
+                    console.error('❌ Image failed to load:', url, error);
+                    reject(new Error(`Failed to load image from ${url}`));
+                };
+                
+                img.src = url;
+            } else {
+                // For cross-origin, use crossOrigin
+                img.crossOrigin = 'anonymous';
+                
+                img.onload = () => {
+                    console.log('✅ Image loaded successfully:', url);
+                    resolve(img);
+                };
+                
+                img.onerror = (error) => {
+                    console.error('❌ Image failed to load:', url, error);
+                    reject(new Error(`Failed to load image from ${url}`));
+                };
+                
+                img.src = url;
+            }
         });
     }
 };
@@ -378,3 +403,4 @@ if (typeof module !== 'undefined' && module.exports) {
         PerformanceMonitor
     };
 }
+
