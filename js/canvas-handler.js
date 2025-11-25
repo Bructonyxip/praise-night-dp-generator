@@ -14,15 +14,15 @@ class DPCanvasHandler {
         // ADJUSTED Frame configuration for your specific template
         this.config = {
             photo: {
-                centerX: this.width * 0.66,        // 66% from left (right side)
-                centerY: this.height * 0.265,      // 26.5% from top (higher up)
-                radius: this.width * 0.195         // Slightly smaller circle
+                centerX: this.width * 0.68,        // 66% from left (right side)
+                centerY: this.height * 0.266,      // 26.5% from top (higher up)
+                radius: this.width * 0.198         // Slightly smaller circle
             },
             name: {
-                centerX: this.width * 0.66,        // Same X as photo (right side)
-                centerY: this.height * 0.48,       // 48% from top (in white box)
+                centerX: this.width * 0.68,        // Same X as photo (right side)
+                centerY: this.height * 0.50,       // 48% from top (in white box)
                 maxWidth: this.width * 0.35,       // Max text width
-                fontSize: { min: 35, max: 55 }     // Font size range
+                fontSize: { min: 40, max: 60 }     // Font size range
             }
         };
         
