@@ -1,6 +1,5 @@
 /**
- * MATEPLUX DP GENERATOR - CANVAS HANDLER (FIXED VERSION)
- * Handles all canvas drawing operations
+ * MATEPLUX DP GENERATOR - CANVAS HANDLER (ULTRA-SIMPLIFIED VERSION)
  * Mateplux Media Systems Ltd.
  */
 
@@ -9,11 +8,10 @@ class DPCanvasHandler {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d', { alpha: false });
         
-        // Canvas dimensions
         this.width = this.canvas.width;
         this.height = this.canvas.height;
         
-        // Frame configuration (adjust these based on your template)
+        // Frame configuration
         this.config = {
             photo: {
                 centerX: this.width / 2,
@@ -24,14 +22,10 @@ class DPCanvasHandler {
                 centerX: this.width / 2,
                 centerY: this.height * 0.565,
                 maxWidth: this.width * 0.4,
-                fontSize: {
-                    min: 30,
-                    max: 60
-                }
+                fontSize: { min: 30, max: 60 }
             }
         };
         
-        // State
         this.userImage = null;
         this.frameImage = null;
         this.userName = '';
@@ -39,13 +33,11 @@ class DPCanvasHandler {
         this.imagePosX = 0;
         this.imagePosY = 0;
         
-        // Enable high DPI rendering
         this.setupHighDPI();
     }
 
     setupHighDPI() {
         const dpr = window.devicePixelRatio || 1;
-        
         if (dpr > 1) {
             const rect = this.canvas.getBoundingClientRect();
             this.canvas.width = rect.width * dpr;
@@ -56,47 +48,30 @@ class DPCanvasHandler {
         }
     }
 
-    // FIXED: Load frame image with multiple path attempts
-    async loadFrame() {
-        const paths = [
-            './assets/images/frame.png',
-            'assets/images/frame.png',
-            'https://bructonyxip.github.io/praise-night-dp-generator/assets/images/frame.png'
-        ];
-
-        for (const path of paths) {
-            try {
-                console.log('🔄 Attempting to load frame from:', path);
-                
-                this.frameImage = await new Promise((resolve, reject) => {
-                    const img = new Image();
-                    
-                    img.onload = () => {
-                        console.log('✅ Frame loaded successfully from:', path);
-                        resolve(img);
-                    };
-                    
-                    img.onerror = () => {
-                        reject(new Error(`Failed to load from ${path}`));
-                    };
-                    
-                    img.src = path;
-                });
-                
-                // If we get here, frame loaded successfully
+    // ULTRA-SIMPLE frame loading
+    loadFrame() {
+        return new Promise((resolve) => {
+            this.frameImage = new Image();
+            
+            this.frameImage.onload = () => {
+                console.log('✅ FRAME LOADED SUCCESSFULLY!');
                 this.draw();
-                return true;
-                
-            } catch (error) {
-                console.warn('⚠️ Failed to load from:', path);
-                continue;
-            }
-        }
-        
-        // If all paths failed
-        console.error('❌ Failed to load frame from all paths');
-        this.drawError('Failed to load template. Please refresh the page.');
-        return false;
+                resolve(true);
+            };
+            
+            this.frameImage.onerror = (error) => {
+                console.error('❌ FRAME FAILED TO LOAD:', error);
+                console.error('Tried to load from:', this.frameImage.src);
+                this.drawError('Failed to load frame template');
+                resolve(false);
+            };
+            
+            // Try absolute path first
+            const basePath = window.location.origin + window.location.pathname.replace(/\/$/, '');
+            this.frameImage.src = basePath + '/assets/images/frame.png';
+            
+            console.log('🔄 Attempting to load frame from:', this.frameImage.src);
+        });
     }
 
     setUserImage(image) {
@@ -105,7 +80,7 @@ class DPCanvasHandler {
     }
 
     setUserName(name) {
-        this.userName = TextUtils.sanitize(name);
+        this.userName = name.trim().substring(0, 25);
         this.draw();
     }
 
@@ -129,7 +104,6 @@ class DPCanvasHandler {
 
     draw() {
         this.ctx.clearRect(0, 0, this.width, this.height);
-        
         this.ctx.fillStyle = '#FFFFFF';
         this.ctx.fillRect(0, 0, this.width, this.height);
 
@@ -141,6 +115,8 @@ class DPCanvasHandler {
 
         if (this.frameImage) {
             this.drawFrame();
+        } else {
+            console.warn('⚠️ Frame image not loaded yet');
         }
 
         if (this.userName) {
@@ -152,7 +128,6 @@ class DPCanvasHandler {
         const { centerX, centerY, radius } = this.config.photo;
 
         this.ctx.save();
-
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
         this.ctx.closePath();
@@ -171,7 +146,6 @@ class DPCanvasHandler {
         this.ctx.imageSmoothingEnabled = true;
         this.ctx.imageSmoothingQuality = 'high';
         this.ctx.drawImage(this.userImage, imgX, imgY, imgWidth, imgHeight);
-
         this.ctx.restore();
     }
 
@@ -179,7 +153,6 @@ class DPCanvasHandler {
         const { centerX, centerY, radius } = this.config.photo;
 
         this.ctx.save();
-
         this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
         this.ctx.lineWidth = 2;
         this.ctx.beginPath();
@@ -187,14 +160,12 @@ class DPCanvasHandler {
         this.ctx.stroke();
 
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        this.ctx.font = 'bold 40px Arial, sans-serif';
+        this.ctx.font = 'bold 40px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         this.ctx.fillText('Your Photo', centerX, centerY - 20);
-        
-        this.ctx.font = '30px Arial, sans-serif';
+        this.ctx.font = '30px Arial';
         this.ctx.fillText('Here', centerX, centerY + 20);
-
         this.ctx.restore();
     }
 
@@ -212,38 +183,26 @@ class DPCanvasHandler {
         const { centerX, centerY, maxWidth, fontSize } = this.config.name;
 
         this.ctx.save();
-
         this.ctx.fillStyle = '#000000';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
 
         let size = fontSize.max;
-        const nameLength = this.userName.length;
+        if (this.userName.length > 15) size = fontSize.max - 10;
+        if (this.userName.length > 20) size = fontSize.min;
 
-        if (nameLength > 15) {
-            size = fontSize.max - 10;
-        }
-        if (nameLength > 20) {
-            size = fontSize.min;
-        }
-
-        this.ctx.font = `bold ${size}px Arial, sans-serif`;
-
+        this.ctx.font = `bold ${size}px Arial`;
         let textWidth = this.ctx.measureText(this.userName.toUpperCase()).width;
         
         while (textWidth > maxWidth && size > fontSize.min) {
             size -= 2;
-            this.ctx.font = `bold ${size}px Arial, sans-serif`;
+            this.ctx.font = `bold ${size}px Arial`;
             textWidth = this.ctx.measureText(this.userName.toUpperCase()).width;
         }
 
         this.ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
         this.ctx.shadowBlur = 2;
-        this.ctx.shadowOffsetX = 1;
-        this.ctx.shadowOffsetY = 1;
-
         this.ctx.fillText(this.userName.toUpperCase(), centerX, centerY, maxWidth);
-
         this.ctx.restore();
     }
 
@@ -255,63 +214,15 @@ class DPCanvasHandler {
         this.ctx.fillStyle = '#ef4444';
         this.ctx.font = 'bold 40px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.fillText('Error', this.width / 2, this.height / 2 - 40);
+        this.ctx.fillText('Error Loading Frame', this.width / 2, this.height / 2 - 20);
         
-        this.ctx.font = '24px Arial';
+        this.ctx.font = '20px Arial';
         this.ctx.fillStyle = '#666';
-        
-        const words = message.split(' ');
-        let line = '';
-        let y = this.height / 2 + 20;
-        
-        words.forEach(word => {
-            const testLine = line + word + ' ';
-            const metrics = this.ctx.measureText(testLine);
-            
-            if (metrics.width > this.width - 100) {
-                this.ctx.fillText(line, this.width / 2, y);
-                line = word + ' ';
-                y += 30;
-            } else {
-                line = testLine;
-            }
-        });
-        
-        this.ctx.fillText(line, this.width / 2, y);
-    }
-
-    async exportAsBlob(type = 'image/png', quality = 1.0) {
-        return new Promise((resolve, reject) => {
-            this.canvas.toBlob((blob) => {
-                if (blob) {
-                    resolve(blob);
-                } else {
-                    reject(new Error('Failed to export canvas'));
-                }
-            }, type, quality);
-        });
-    }
-
-    exportAsDataURL(type = 'image/png', quality = 1.0) {
-        return this.canvas.toDataURL(type, quality);
+        this.ctx.fillText(message, this.width / 2, this.height / 2 + 30);
     }
 
     isReadyForDownload() {
         return this.userImage !== null && this.frameImage !== null;
-    }
-
-    getStats() {
-        return {
-            hasImage: this.userImage !== null,
-            hasFrame: this.frameImage !== null,
-            hasName: this.userName.length > 0,
-            zoom: this.imageZoom,
-            position: {
-                x: this.imagePosX,
-                y: this.imagePosY
-            }
-        };
     }
 
     reset() {
@@ -322,18 +233,10 @@ class DPCanvasHandler {
         this.imagePosY = 0;
         this.draw();
     }
-
-    updateConfig(newConfig) {
-        this.config = { ...this.config, ...newConfig };
-        this.draw();
-    }
 }
 
-let dpCanvas = null;
-
 function initializeCanvas(canvasId = 'dpCanvas') {
-    dpCanvas = new DPCanvasHandler(canvasId);
-    return dpCanvas;
+    return new DPCanvasHandler(canvasId);
 }
 
 if (typeof window !== 'undefined') {
