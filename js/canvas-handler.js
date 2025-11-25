@@ -1,5 +1,5 @@
 /**
- * MATEPLUX DP GENERATOR - CANVAS HANDLER
+ * MATEPLUX DP GENERATOR - CANVAS HANDLER (FIXED VERSION)
  * Handles all canvas drawing operations
  * Mateplux Media Systems Ltd.
  */
@@ -16,14 +16,14 @@ class DPCanvasHandler {
         // Frame configuration (adjust these based on your template)
         this.config = {
             photo: {
-                centerX: this.width / 2,          // Center of circle
-                centerY: this.height * 0.32,      // 32% from top
-                radius: this.width * 0.23         // 23% of canvas width
+                centerX: this.width / 2,
+                centerY: this.height * 0.32,
+                radius: this.width * 0.23
             },
             name: {
                 centerX: this.width / 2,
-                centerY: this.height * 0.565,     // Position of name box
-                maxWidth: this.width * 0.4,       // Maximum text width
+                centerY: this.height * 0.565,
+                maxWidth: this.width * 0.4,
                 fontSize: {
                     min: 30,
                     max: 60
@@ -39,14 +39,10 @@ class DPCanvasHandler {
         this.imagePosX = 0;
         this.imagePosY = 0;
         
-        // Frame image path
-     this.frameImagePath = 'https://bructonyxip.github.io/praise-night-dp-generator/assets/images/frame.png';
-        
         // Enable high DPI rendering
         this.setupHighDPI();
     }
 
-    // Setup high DPI rendering
     setupHighDPI() {
         const dpr = window.devicePixelRatio || 1;
         
@@ -60,50 +56,59 @@ class DPCanvasHandler {
         }
     }
 
-    // Load frame image
-async loadFrame() {
-    try {
-        // Direct image loading
-        this.frameImage = new Image();
-        this.frameImage.crossOrigin = 'anonymous';
-        
-        return new Promise((resolve, reject) => {
-            this.frameImage.onload = () => {
+    // FIXED: Load frame image with multiple path attempts
+    async loadFrame() {
+        const paths = [
+            './assets/images/frame.png',
+            'assets/images/frame.png',
+            'https://bructonyxip.github.io/praise-night-dp-generator/assets/images/frame.png'
+        ];
+
+        for (const path of paths) {
+            try {
+                console.log('🔄 Attempting to load frame from:', path);
+                
+                this.frameImage = await new Promise((resolve, reject) => {
+                    const img = new Image();
+                    
+                    img.onload = () => {
+                        console.log('✅ Frame loaded successfully from:', path);
+                        resolve(img);
+                    };
+                    
+                    img.onerror = () => {
+                        reject(new Error(`Failed to load from ${path}`));
+                    };
+                    
+                    img.src = path;
+                });
+                
+                // If we get here, frame loaded successfully
                 this.draw();
-                console.log('Frame loaded successfully!');
-                resolve(true);
-            };
-            
-            this.frameImage.onerror = (error) => {
-                console.error('Failed to load frame:', error);
-                this.drawError('Failed to load template. Please refresh the page.');
-                reject(false);
-            };
-            
-            this.frameImage.src = this.frameImagePath;
-        });
-    } catch (error) {
-        console.error('Failed to load frame:', error);
+                return true;
+                
+            } catch (error) {
+                console.warn('⚠️ Failed to load from:', path);
+                continue;
+            }
+        }
+        
+        // If all paths failed
+        console.error('❌ Failed to load frame from all paths');
         this.drawError('Failed to load template. Please refresh the page.');
         return false;
     }
-}
-        }
-    }
 
-    // Set user uploaded image
     setUserImage(image) {
         this.userImage = image;
         this.draw();
     }
 
-    // Set user name
     setUserName(name) {
         this.userName = TextUtils.sanitize(name);
         this.draw();
     }
 
-    // Set image adjustments
     setImageZoom(zoom) {
         this.imageZoom = parseFloat(zoom);
         this.draw();
@@ -115,7 +120,6 @@ async loadFrame() {
         this.draw();
     }
 
-    // Reset image adjustments
     resetAdjustments() {
         this.imageZoom = 1;
         this.imagePosX = 0;
@@ -123,46 +127,37 @@ async loadFrame() {
         this.draw();
     }
 
-    // Main draw function
     draw() {
-        // Clear canvas
         this.ctx.clearRect(0, 0, this.width, this.height);
         
-        // Fill with white background
         this.ctx.fillStyle = '#FFFFFF';
         this.ctx.fillRect(0, 0, this.width, this.height);
 
-        // Draw user photo if available
         if (this.userImage) {
             this.drawUserPhoto();
         } else {
             this.drawPhotoPlaceholder();
         }
 
-        // Draw frame overlay
         if (this.frameImage) {
             this.drawFrame();
         }
 
-        // Draw user name if provided
         if (this.userName) {
             this.drawUserName();
         }
     }
 
-    // Draw user photo in circular area
     drawUserPhoto() {
         const { centerX, centerY, radius } = this.config.photo;
 
         this.ctx.save();
 
-        // Create circular clipping path
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
         this.ctx.closePath();
         this.ctx.clip();
 
-        // Calculate image dimensions maintaining aspect ratio
         const scale = Math.max(
             (radius * 2) / this.userImage.width,
             (radius * 2) / this.userImage.height
@@ -173,7 +168,6 @@ async loadFrame() {
         const imgX = centerX - imgWidth / 2 + this.imagePosX;
         const imgY = centerY - imgHeight / 2 + this.imagePosY;
 
-        // Draw image with smooth rendering
         this.ctx.imageSmoothingEnabled = true;
         this.ctx.imageSmoothingQuality = 'high';
         this.ctx.drawImage(this.userImage, imgX, imgY, imgWidth, imgHeight);
@@ -181,20 +175,17 @@ async loadFrame() {
         this.ctx.restore();
     }
 
-    // Draw placeholder when no photo is uploaded
     drawPhotoPlaceholder() {
         const { centerX, centerY, radius } = this.config.photo;
 
         this.ctx.save();
 
-        // Draw circle outline
         this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
         this.ctx.lineWidth = 2;
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
         this.ctx.stroke();
 
-        // Draw placeholder text
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         this.ctx.font = 'bold 40px Arial, sans-serif';
         this.ctx.textAlign = 'center';
@@ -207,7 +198,6 @@ async loadFrame() {
         this.ctx.restore();
     }
 
-    // Draw frame overlay
     drawFrame() {
         this.ctx.save();
         this.ctx.imageSmoothingEnabled = true;
@@ -216,7 +206,6 @@ async loadFrame() {
         this.ctx.restore();
     }
 
-    // Draw user name in the designated area
     drawUserName() {
         if (!this.userName) return;
 
@@ -224,12 +213,10 @@ async loadFrame() {
 
         this.ctx.save();
 
-        // Set text properties
         this.ctx.fillStyle = '#000000';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
 
-        // Calculate optimal font size
         let size = fontSize.max;
         const nameLength = this.userName.length;
 
@@ -242,7 +229,6 @@ async loadFrame() {
 
         this.ctx.font = `bold ${size}px Arial, sans-serif`;
 
-        // Measure text and adjust if needed
         let textWidth = this.ctx.measureText(this.userName.toUpperCase()).width;
         
         while (textWidth > maxWidth && size > fontSize.min) {
@@ -251,7 +237,6 @@ async loadFrame() {
             textWidth = this.ctx.measureText(this.userName.toUpperCase()).width;
         }
 
-        // Draw text with shadow for better readability
         this.ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
         this.ctx.shadowBlur = 2;
         this.ctx.shadowOffsetX = 1;
@@ -262,7 +247,6 @@ async loadFrame() {
         this.ctx.restore();
     }
 
-    // Draw error message
     drawError(message) {
         this.ctx.clearRect(0, 0, this.width, this.height);
         this.ctx.fillStyle = '#f0f0f0';
@@ -277,7 +261,6 @@ async loadFrame() {
         this.ctx.font = '24px Arial';
         this.ctx.fillStyle = '#666';
         
-        // Word wrap error message
         const words = message.split(' ');
         let line = '';
         let y = this.height / 2 + 20;
@@ -298,7 +281,6 @@ async loadFrame() {
         this.ctx.fillText(line, this.width / 2, y);
     }
 
-    // Export canvas as blob
     async exportAsBlob(type = 'image/png', quality = 1.0) {
         return new Promise((resolve, reject) => {
             this.canvas.toBlob((blob) => {
@@ -311,17 +293,14 @@ async loadFrame() {
         });
     }
 
-    // Export canvas as data URL
     exportAsDataURL(type = 'image/png', quality = 1.0) {
         return this.canvas.toDataURL(type, quality);
     }
 
-    // Check if canvas is ready for download
     isReadyForDownload() {
         return this.userImage !== null && this.frameImage !== null;
     }
 
-    // Get canvas statistics
     getStats() {
         return {
             hasImage: this.userImage !== null,
@@ -335,7 +314,6 @@ async loadFrame() {
         };
     }
 
-    // Reset everything
     reset() {
         this.userImage = null;
         this.userName = '';
@@ -345,14 +323,12 @@ async loadFrame() {
         this.draw();
     }
 
-    // Update frame configuration (for fine-tuning)
     updateConfig(newConfig) {
         this.config = { ...this.config, ...newConfig };
         this.draw();
     }
 }
 
-// Initialize and export
 let dpCanvas = null;
 
 function initializeCanvas(canvasId = 'dpCanvas') {
@@ -360,10 +336,7 @@ function initializeCanvas(canvasId = 'dpCanvas') {
     return dpCanvas;
 }
 
-// Make available globally
 if (typeof window !== 'undefined') {
     window.DPCanvasHandler = DPCanvasHandler;
     window.initializeCanvas = initializeCanvas;
-
 }
-
